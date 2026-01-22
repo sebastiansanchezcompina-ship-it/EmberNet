@@ -1,0 +1,28 @@
+🌐 EMBER MESH – Red P2P Resiliente Off-Grid (Rust + UDP + TUI)Desarrollado por: Sebastian RequejoEMBER (Emergency Bearer Network) es un prototipo de red de malla descentralizada diseñado para comunicaciones críticas en entornos sin infraestructura (Off-Grid).Este proyecto implementa el núcleo (Core) de la red utilizando Rust para garantizar máximo rendimiento y seguridad de memoria. El sistema permite el descubrimiento automático de nodos, mensajería encriptada de extremo a extremo (E2EE) y transferencia de archivos fragmentados sobre redes inestables, todo visualizado a través de una interfaz de terminal táctica (TUI).🏗️ Estructura del ProyectoPlaintext📁 ember-core/                         # Raíz del proyecto
+│
+├── 📁 src/                            # Código Fuente (Rust)
+│   ├── main.rs                        # 🖥️ Punto de entrada & Interfaz TUI (Matrix Style)
+│   ├── node.rs                        # 🧠 Cerebro lógico: Manejo de estados y eventos
+│   ├── transport.rs                   # 📡 Capa de Red: Sockets UDP y manejo de puertos
+│   ├── protocol.rs                    # 📦 Definición de Paquetes (Frames, Headers)
+│   ├── crypto.rs                      # 🔐 Seguridad: Cifrado y Descifrado
+│   ├── identity.rs                    # 🆔 Gestión de Llaves (Públicas/Privadas)
+│   ├── chunker.rs                     # 🧩 Fragmentación y Reensamblaje de archivos
+│   ├── rate_limiter.rs                # 🚦 Control de flujo (Anti-Spam)
+│   └── replay_cache.rs                # 🛡️ Protección contra ataques de repetición
+│
+├── 📁 downloads/                      # Carpeta automática para archivos recibidos
+│
+├── 📁 target/                         # Binarios compilados (Debug/Release)
+├── .gitignore                         # Configuración de Git
+├── Cargo.toml                         # Gestor de dependencias (Manifest)
+└── README.md                          # Documentación general
+⚙️ Tecnologías PrincipalesComponenteTecnologíaDescripciónLenguaje BaseRust 🦀Garantiza seguridad de memoria y rendimiento nativo.Interfaz (UI)Ratatui + CrosstermTUI (Terminal User Interface) reactiva y estilizada.RedUDP SocketsComunicación de baja latencia sin conexión (Connectionless).Cifrado SimétricoChaCha20Poly1305Encriptación de alta velocidad para los payloads.Firmas DigitalesEd25519-DalekVerificación de identidad y autenticidad de mensajes.SerializaciónBincodeSerialización binaria compacta para eficiencia en red.🧩 ESTRUCTURA EXPLICADA🖥️ 1. Interfaz y Control (main.rs)Es la "Cara" del proyecto.Rol: Inicializa la aplicación, configura el entorno gráfico con Ratatui y maneja los hilos (threads) de ejecución.Visualización: Divide la pantalla en paneles (Header, Chat Log, Input) y aplica el estilo "Matrix" (Verde/Negro).Input: Captura las teclas del usuario y procesa los comandos (/send, /dm, etc.).🧠 2. El Cerebro (node.rs)Es el núcleo lógico del sistema.Rol: Procesa cada paquete recibido (on_frame). Decide si el mensaje es para mí, si debe retransmitirlo (Gossip Protocol) o si es un fragmento de archivo.Manejo de Vecinos: Mantiene la tabla de rutas (peers) y elimina nodos inactivos (Heartbeat/Pruning).📡 3. Capa de Transporte (transport.rs)El sistema nervioso.Rol: Abstrae el manejo de sockets UDP. Permite enviar y recibir bytes crudos sin preocuparse por la lógica del sistema operativo.Clonable: Diseñado para ser compartido entre múltiples hilos de forma segura.🔐 4. Seguridad y Criptografía (crypto.rs & identity.rs)El escudo del sistema.identity.rs: Genera y almacena persistentemente las llaves Ed25519. Tu "DNI" en la red.crypto.rs: Maneja el cifrado AEAD. Asegura que solo el destinatario pueda leer el contenido y que nadie lo haya modificado en el camino.🧩 5. Logística de Datos (chunker.rs)El gestor de carga pesada.Rol: Toma archivos grandes (imágenes, mapas) y los rompe en miles de pedazos pequeños (chunks) para que pasen por la red UDP.Reensamblaje: En el destino, espera las piezas, verifica que estén todas y reconstruye el archivo original en la carpeta downloads/.🚀 Instalación y UsoPrerrequisitosRust & Cargo: Instalados en el sistema.Red: Dos o más computadoras en la misma red Wi-Fi/LAN (o una sola usando puertos distintos).EjecuciónClonar el repositorio:Bashgit clone https://github.com/sebastiansanchezcompina-ship-it/EmberNet.git
+cd EmberNet
+Iniciar el Nodo Principal (Nodo A):Bashcargo run 4004
+Iniciar un Nodo Vecino (Nodo B):En otra terminal (o PC), conéctate a la IP del Nodo A:Bash# Ejemplo Local
+cargo run 4005 127.0.0.1:4004
+
+# Ejemplo en Red Wi-Fi real
+cargo run 4005 192.168.1.XX:4004
+Comandos de la InterfazDentro de la TUI, puedes usar los siguientes comandos:/status📊 Muestra la lista de vecinos conectados y sus últimas señales de vida./dm <ID_NODO> <MENSAJE>🕵️‍♂️ Envía un mensaje privado y cifrado a un nodo específico (hex ID)./send <RUTA_ARCHIVO>📦 Fragmenta y envía un archivo a toda la red.Ejemplo: /send mapa.png🗺️ Roadmap[x] Fase 1: Arquitectura P2P UDP y Cifrado Base. (✅ Completado)[x] Fase 2: Protocolo de Fragmentación para archivos grandes. (✅ Completado)[x] Fase 3: Interfaz Visual Táctica (TUI) con Ratatui. (✅ Completado)[ ] Fase 4: Portabilidad a Android (Compilación Cruzada JNI). 🚧 En desarrollo[ ] Fase 5: Implementación de Mesh Routing avanzado (AODV/Kad).✒️ AutorSebastian RequejoIngeniero de Software & Arquitecto de Sistemas Distribuidos.Este proyecto es un prototipo de investigación para redes resilientes.
