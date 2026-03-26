@@ -5,11 +5,12 @@ use crate::crypto;
 use crate::chunker::{Assembler, Chunk};
 use ed25519_dalek::{Verifier, VerifyingKey, Signature};
 use std::convert::TryInto;
-use std::collections::HashMap;
+
 use std::net::SocketAddr;
 use std::time::{Instant, Duration};
 use std::fs::{self, File};
 use std::io::Write;
+use std::collections::{HashMap, HashSet}; // 👈 Asegúrate de importar HashSe
 
 #[derive(Debug)]
 pub enum State { Idle, Processing }
@@ -24,6 +25,7 @@ pub struct ProcessResult {
 pub struct Node {
     pub state: State,
     pub my_id: [u8; 8],
+    pub blocked_peers: HashSet<[u8; 8]>,
     replay_cache: ReplayCache,
     rate_limiter: RateLimiter,
     pub peers: HashMap<SocketAddr, Instant>,
@@ -39,6 +41,7 @@ impl Node {
             replay_cache: ReplayCache::new(),
             rate_limiter: RateLimiter::new(),
             peers: HashMap::new(),
+            blocked_peers: HashSet::new(), // 👈 Inicializar vacío
             assembler: Assembler::new(),
         }
     }
@@ -46,6 +49,17 @@ impl Node {
     pub fn add_peer(&mut self, addr: SocketAddr) {
         self.peers.insert(addr, Instant::now());
     }
+
+    pub fn toggle_block(&mut self, id: [u8; 8]) -> bool {
+        if self.blocked_peers.contains(&id) {
+            self.blocked_peers.remove(&id);
+            false // Ya no está bloqueado
+        } else {
+            self.blocked_peers.insert(id);
+            true // Ahora está bloqueado
+        }
+    }
+
 
     pub fn prune_dead_nodes(&mut self, timeout: Duration) -> Vec<SocketAddr> {
         self.assembler.cleanup_stale(); 
@@ -64,6 +78,14 @@ impl Node {
         self.state = State::Processing;
         // Inicializamos log_output como None
         let mut result = ProcessResult { frame_to_relay: None, ack_to_send: None, log_output: None };
+
+        // 🛑 FILTRO DE BLOQUEO
+        if self.blocked_peers.contains(&frame.header.src_id) {
+            // Si está bloqueado, devolvemos el resultado vacío inmediatamente.
+            // El mensaje muere aquí. No se procesa, no se responde, no se ve.
+            self.state = State::Idle;
+            return result; 
+        }
 
         if !frame.is_valid_structure() {
             self.state = State::Idle; return result;
@@ -117,8 +139,10 @@ impl Node {
                             result.ack_to_send = Some((src, frame.header.msg_id));
                         } else {
                             // Chat normal
-                            result.log_output = Some(format!("💬 [{:02x?}] dice: {}", &frame.header.src_id[0..4], texto));
-                        }
+                                                   // Ahora (muestra el ID completo y limpio para copiar: 1a2b3c4d...)
+                            let id_hex = hex::encode(frame.header.src_id);
+                            result.log_output = Some(format!("💬 {} dice: {}", id_hex, texto));
+                                                }
                         if !self.peers.contains_key(&src) { self.peers.insert(src, Instant::now()); }
                     },
                     MessageType::FileChunk => {

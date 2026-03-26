@@ -1,8 +1,10 @@
 use chacha20poly1305::{
-    aead::{Aead, KeyInit, OsRng},
-    XChaCha20Poly1305, XNonce 
+    aead::{Aead, KeyInit },
+    XChaCha20Poly1305, XNonce,
 };
-use rand::RngCore;
+use rand::rngs::OsRng;
+use rand::RngCore; // 👈 Deja solo esta línea. BORRA la que esté repetida abajo.
+
 
 // 🔑 CLAVE MAESTRA DE LA RED (32 bytes)
 // En un futuro, esto podría negociarse con Diffie-Hellman (X25519).
